@@ -35,7 +35,7 @@ try {
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent().User
         $acl = if ($PSVersionTable.PSEdition -eq 'Desktop') { [IO.Directory]::GetAccessControl($DataDirectory) }
             else { [IO.FileSystemAclExtensions]::GetAccessControl([IO.DirectoryInfo]::new($DataDirectory)) }
-        if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne $identity.Value) { throw 'The new data directory is not owned by the current user.' }
+        if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne $identity.Value) { $acl.SetOwner($identity) }
         $acl.SetAccessRuleProtection($true, $false)
         foreach ($sid in @($identity, [Security.Principal.SecurityIdentifier]::new('S-1-5-18'))) {
             [void]$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow'))
