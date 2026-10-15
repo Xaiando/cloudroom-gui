@@ -2598,7 +2598,9 @@ async function runDesktopApp(): Promise<void> {
     desktopAutoUpdateService.start();
   } else {
     desktopLogger.info(
-      "Desktop auto-install is disabled: only the Linux AppImage build can replace itself. Version checks still report new releases.",
+      desktopUpdateSupport.versionCheck
+        ? "Desktop auto-install is disabled for this build. Version checks still report new releases."
+        : "Desktop updates are disabled for this experimental build.",
     );
   }
 

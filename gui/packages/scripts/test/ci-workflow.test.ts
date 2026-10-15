@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   copyFileSync,
   mkdirSync,
   mkdtempSync,
@@ -31,7 +32,14 @@ it("keeps desktop builds local without publishing", () => {
   expect(scripts["dist:linux"]).toContain("pnpm run prepare-runtime");
 });
 
-it.each([".", "gui"])(
+it
+  .skipIf(
+    process.platform === "win32" ||
+      !existsSync(
+        join(repoRoot, ".github/actions/setup-workspace/install-pnpm.sh"),
+      ),
+  )
+  .each([".", "gui"])(
   "rejects a mismatched pnpm version in workspace %s",
   (directory) => {
     const fixture = mkdtempSync(join(tmpdir(), "bb-pnpm-version-"));
@@ -77,7 +85,11 @@ it.each([".", "gui"])(
     const workspace = resolve(fixture, directory);
     mkdirSync(join(workspace, "scripts"), { recursive: true });
     mkdirSync(join(workspace, "skills"));
-    symlinkSync("skills", join(workspace, "linked-skills"));
+    symlinkSync(
+      join(workspace, "skills"),
+      join(workspace, "linked-skills"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
     writeFileSync(join(workspace, "source.ts"), 'export const ok = "yes";\n');
     writeFileSync(
       join(fixture, directory === "." ? "outside.png" : "outside.bin"),
@@ -106,7 +118,13 @@ it.each([".", "gui"])(
   },
 );
 
-it.each([".", "gui"])(
+it
+  .skipIf(
+    !existsSync(
+      join(repoRoot, ".github/workflows/check-plugin-sdk-version.mjs"),
+    ),
+  )
+  .each([".", "gui"])(
   "requires SDK version bumps in workspace %s",
   (directory) => {
     const fixture = mkdtempSync(join(tmpdir(), "cloudroom-sdk-check-"));

@@ -1,5 +1,9 @@
 # Cloudroom
 
+**Windows preview:** This fork brings the original desktop interface to native Windows. See [build and launch](gui/docs/windows.md). Windows parity is in progress; the checks and remaining work are documented there.
+
+![Original Automations interface running on Windows](gui/docs/windows-automations.png)
+
 Start an agent on your Mac. Move it to the cloud mid-task.
 
 [Download](https://www.cloudroom.dev/download) · [Website](https://www.cloudroom.dev) · [Changelog](https://www.cloudroom.dev/changelog) · [Self-host the core](https://github.com/davidondrej/cloudroom-core)

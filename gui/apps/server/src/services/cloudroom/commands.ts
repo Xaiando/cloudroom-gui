@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, writeFile, mkdir, stat, rename, rm } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rename, rm } from "node:fs/promises";
+import { assertPrivatePath } from "@cloudroom/secret-storage";
 import { join } from "node:path";
 import { and, desc, eq, inArray, isNull, notInArray } from "drizzle-orm";
 import { createThread, getAppSettings, getProject, getThread, getThreadExecutionOverride, setThreadExecutionOverride, updateThread, cloudroomThreads, cloudroomCommands, events, threads, type DbConnection, type DbQueryConnection, type DbTransaction } from "@cloudroom/db";
@@ -508,8 +509,7 @@ class CloudroomService {
 
   private async savedConnection() {
     try {
-      const info = await stat(this.path);
-      if ((info.mode & 0o077) !== 0) throw new Error("permissions");
+      await assertPrivatePath(this.path);
       return savedConnectionSchema.parse(JSON.parse(await readFile(this.path, "utf8")));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -533,6 +533,7 @@ class CloudroomService {
 
   private async saveConnection(value: unknown): Promise<void> {
     await mkdir(this.deps.config.dataDir, { recursive: true });
+    if (process.platform === "win32") await assertPrivatePath(this.deps.config.dataDir);
     const temporary = `${this.path}.${randomUUID()}`;
     try {
       await writeFile(temporary, JSON.stringify(value), { mode: 0o600, flag: "wx" });

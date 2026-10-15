@@ -54,7 +54,7 @@ afterEach(async () => {
 describe("run-dev", () => {
   it("shares the packaged backend without starting server or daemon tasks", () => {
     const isolated = resolveDevInstanceConfig({
-      homeDir: "/Users/tester",
+      homeDir: path.resolve("/Users/tester"),
       repoRoot: "/repo/cloudroom/gui",
     });
     const shared = resolveSharedDevInstanceConfig(isolated);
@@ -66,7 +66,7 @@ describe("run-dev", () => {
     });
     expect(mode).toBe("shared");
     expect(shared.ports.appPort).toBe(isolated.ports.appPort);
-    expect(env.BB_DATA_DIR).toBe("/Users/tester/.gui-cloudroom");
+    expect(env.BB_DATA_DIR).toBe(path.resolve("/Users/tester/.gui-cloudroom"));
     expect(env.BB_SERVER_URL).toBe("http://127.0.0.1:39886");
     expect(env.BB_SERVER_PORT).toBe("39886");
     expect(env.BB_HOST_DAEMON_PORT).toBe("39887");
@@ -76,7 +76,9 @@ describe("run-dev", () => {
     expect(command.args).not.toContain("--filter=@cloudroom/server");
     expect(command.args).not.toContain("--filter=@cloudroom/host-daemon");
     expect(isolated.dataDir).not.toBe(shared.dataDir);
-    expect(createDevTurboCommand().args).toContain("--filter=@cloudroom/server");
+    expect(createDevTurboCommand().args).toContain(
+      "--filter=@cloudroom/server",
+    );
   });
 
   it("does not combine shared history with worktree runtime startup", () => {
@@ -84,9 +86,10 @@ describe("run-dev", () => {
   });
 
   it("derives stable data and ports from a managed checkout", () => {
-    const homeDir = "/Users/tester";
-    const repoRoot =
-      "/Users/tester/.gui-cloudroom-dev/projects/env_q7e5i54kxt/bb";
+    const homeDir = path.resolve("/Users/tester");
+    const repoRoot = path.resolve(
+      "/Users/tester/.gui-cloudroom-dev/projects/env_q7e5i54kxt/bb",
+    );
     const config = resolveDevInstanceConfig({ homeDir, repoRoot });
 
     expect(config.instanceId).toBe(
@@ -119,7 +122,10 @@ describe("run-dev", () => {
     const portsByOffset = new Map(
       [...rootsByOffset].map(([offset, repoRoot]) => [
         offset,
-        resolveDevInstanceConfig({ homeDir: "/Users/tester", repoRoot }).ports,
+        resolveDevInstanceConfig({
+          homeDir: path.resolve("/Users/tester"),
+          repoRoot,
+        }).ports,
       ]),
     );
 
@@ -141,8 +147,8 @@ describe("run-dev", () => {
   });
 
   it("uses the home-relative checkout path for non-managed checkout paths", () => {
-    const homeDir = "/Users/tester";
-    const repoRoot = "/Users/tester/src/work/bb-feature-copy";
+    const homeDir = path.resolve("/Users/tester");
+    const repoRoot = path.resolve("/Users/tester/src/work/bb-feature-copy");
 
     const config = resolveDevInstanceConfig({ homeDir, repoRoot });
 
@@ -153,11 +159,13 @@ describe("run-dev", () => {
 
   it("overrides instance selectors while preserving unrelated environment", () => {
     const config = resolveDevInstanceConfig({
-      homeDir: "/Users/tester",
-      repoRoot: "/Users/tester/.gui-cloudroom-dev/projects/env_q7e5i54kxt/bb",
+      homeDir: path.resolve("/Users/tester"),
+      repoRoot: path.resolve(
+        "/Users/tester/.gui-cloudroom-dev/projects/env_q7e5i54kxt/bb",
+      ),
     });
     const baseEnv: NodeJS.ProcessEnv = {
-      BB_DATA_DIR: "/Users/tester/.gui-cloudroom-dev",
+      BB_DATA_DIR: path.resolve("/Users/tester/.gui-cloudroom-dev"),
       BB_SERVER_PORT: "3334",
       NODE_ENV: "production",
       OPENAI_API_KEY: "test-key",
@@ -178,17 +186,18 @@ describe("run-dev", () => {
   });
 
   it("inherits parent bb skills for managed worktree dev apps", () => {
-    const homeDir = "/Users/tester";
-    const repoRoot =
-      "/Users/tester/.gui-cloudroom-dev/code-bb-abc123/worktrees/env_feature/bb";
+    const homeDir = path.resolve("/Users/tester");
+    const repoRoot = path.resolve(
+      "/Users/tester/.gui-cloudroom-dev/code-bb-abc123/worktrees/env_feature/bb",
+    );
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot,
     });
 
     const inheritedSkillsRootPaths = [
-      "/Users/tester/.gui-cloudroom-dev/code-bb-abc123/skills",
-      "/Users/tester/.gui-cloudroom/skills",
+      path.resolve("/Users/tester/.gui-cloudroom-dev/code-bb-abc123/skills"),
+      path.resolve("/Users/tester/.gui-cloudroom/skills"),
     ];
     expect(resolveInheritedDevSkillsRootPaths({ homeDir, repoRoot })).toEqual(
       inheritedSkillsRootPaths,
@@ -199,48 +208,55 @@ describe("run-dev", () => {
   });
 
   it("dedupes inherited bb skills for prod-managed worktree dev apps", () => {
-    const homeDir = "/Users/tester";
-    const repoRoot = "/Users/tester/.gui-cloudroom/worktrees/env_feature/bb";
+    const homeDir = path.resolve("/Users/tester");
+    const repoRoot = path.resolve(
+      "/Users/tester/.gui-cloudroom/worktrees/env_feature/bb",
+    );
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot,
     });
 
     expect(resolveInheritedDevSkillsRootPaths({ homeDir, repoRoot })).toEqual([
-      "/Users/tester/.gui-cloudroom/skills",
+      path.resolve("/Users/tester/.gui-cloudroom/skills"),
     ]);
     expect(toDevProcessEnv({ baseEnv: {}, config })).toMatchObject({
-      BB_INHERITED_SKILLS_ROOTS: "/Users/tester/.gui-cloudroom/skills",
+      BB_INHERITED_SKILLS_ROOTS: path.resolve(
+        "/Users/tester/.gui-cloudroom/skills",
+      ),
     });
   });
 
   it("inherits prod bb skills for ordinary checkout dev apps", () => {
-    const homeDir = "/Users/tester";
-    const repoRoot = "/Users/tester/src/bb";
+    const homeDir = path.resolve("/Users/tester");
+    const repoRoot = path.resolve("/Users/tester/src/bb");
     const config = resolveDevInstanceConfig({
       homeDir,
       repoRoot,
     });
 
     expect(resolveInheritedDevSkillsRootPaths({ homeDir, repoRoot })).toEqual([
-      "/Users/tester/.gui-cloudroom/skills",
+      path.resolve("/Users/tester/.gui-cloudroom/skills"),
     ]);
     expect(toDevProcessEnv({ baseEnv: {}, config })).toMatchObject({
-      BB_INHERITED_SKILLS_ROOTS: "/Users/tester/.gui-cloudroom/skills",
+      BB_INHERITED_SKILLS_ROOTS: path.resolve(
+        "/Users/tester/.gui-cloudroom/skills",
+      ),
     });
   });
 
   it("strips parent thread context from dev child processes", () => {
     const config = resolveDevInstanceConfig({
-      homeDir: "/Users/tester",
-      repoRoot: "/Users/tester/src/bb",
+      homeDir: path.resolve("/Users/tester"),
+      repoRoot: path.resolve("/Users/tester/src/bb"),
     });
     const baseEnv: NodeJS.ProcessEnv = {
       BB_ENVIRONMENT_ID: "env_parent",
       BB_PROJECT_ID: "proj_parent",
       BB_THREAD_ID: "thr_parent",
-      BB_THREAD_STORAGE:
+      BB_THREAD_STORAGE: path.resolve(
         "/Users/tester/.gui-cloudroom/thread-storage/thr_parent",
+      ),
     };
 
     const env = toDevProcessEnv({ baseEnv, config });
@@ -294,13 +310,13 @@ describe("run-dev", () => {
 
   it("uses production serving with checkout-specific dev selectors", () => {
     const config = resolveDevInstanceConfig({
-      homeDir: "/Users/tester",
-      repoRoot: "/Users/tester/src/bb",
+      homeDir: path.resolve("/Users/tester"),
+      repoRoot: path.resolve("/Users/tester/src/bb"),
     });
 
     const env = toDevLaunchProcessEnv({
       baseEnv: {
-        BB_DATA_DIR: "/Users/tester/.bb",
+        BB_DATA_DIR: path.resolve("/Users/tester/.bb"),
         BB_DEV_APP_PORT: "5173",
         BB_TELEMETRY: "true",
         NODE_ENV: "development",

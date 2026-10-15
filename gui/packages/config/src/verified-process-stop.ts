@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -65,6 +66,44 @@ async function readPsField(pid: number, field: string): Promise<string | null> {
   }
 }
 
+async function readWindowsProcess(pid: number): Promise<{
+  command: string;
+  elapsedSeconds: number;
+} | null> {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return null;
+  const command = `$p = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}'; if ($null -ne $p) { @{ command = $p.CommandLine; elapsedSeconds = [Math]::Max(0, ([DateTime]::UtcNow - $p.CreationDate.ToUniversalTime()).TotalSeconds) } | ConvertTo-Json -Compress }`;
+  try {
+    const result = await execFileAsync(
+      join(
+        process.env.SystemRoot ?? "C:\\Windows",
+        "System32",
+        "WindowsPowerShell",
+        "v1.0",
+        "powershell.exe",
+      ),
+      ["-NoProfile", "-NonInteractive", "-Command", command],
+      { timeout: 5_000, windowsHide: true },
+    );
+    const metadata: unknown = JSON.parse(result.stdout.trim());
+    if (
+      typeof metadata !== "object" ||
+      metadata === null ||
+      !("command" in metadata) ||
+      typeof metadata.command !== "string" ||
+      !("elapsedSeconds" in metadata) ||
+      typeof metadata.elapsedSeconds !== "number" ||
+      !Number.isFinite(metadata.elapsedSeconds)
+    )
+      return null;
+    return {
+      command: metadata.command,
+      elapsedSeconds: metadata.elapsedSeconds,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function parseElapsedSeconds(rawElapsed: string): number | null {
   const match = rawElapsed
     .trim()
@@ -98,8 +137,14 @@ export function createNodeVerifiedProcessOps(): VerifiedProcessOps {
     kill(pid, signal) {
       process.kill(pid, signal);
     },
-    readCommand: (pid) => readPsField(pid, "command="),
+    readCommand: async (pid) =>
+      process.platform === "win32"
+        ? ((await readWindowsProcess(pid))?.command ?? null)
+        : readPsField(pid, "command="),
     async readElapsedSeconds(pid) {
+      if (process.platform === "win32") {
+        return (await readWindowsProcess(pid))?.elapsedSeconds ?? null;
+      }
       const rawElapsed = await readPsField(pid, "etime=");
       return rawElapsed === null ? null : parseElapsedSeconds(rawElapsed);
     },

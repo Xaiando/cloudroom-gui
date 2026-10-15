@@ -844,18 +844,20 @@ describe("bb-app launcher", () => {
     mkdirSync(daemonBundleDir, { recursive: true });
     writeFileSync(
       join(daemonBundleDir, "room-cli"),
-      `#!/bin/sh\nprintf '%s' "$1" > '${markerPath}'\n`,
+      `#!/usr/bin/env node\nrequire('node:fs').writeFileSync(${JSON.stringify(markerPath)}, process.argv[2]);\n`,
       { mode: 0o755 },
     );
 
     const exitCode = await runBundledCliCommand({
-      args: ["status"],
+      args: ['status with spaces & "quotes" and Æ'],
       context: { ...createTestStartContext(), daemonBundleDir },
       env: {},
     });
 
     expect(exitCode).toBe(0);
-    expect(readFileSync(markerPath, "utf8")).toBe("status");
+    expect(readFileSync(markerPath, "utf8")).toBe(
+      'status with spaces & "quotes" and Æ',
+    );
     rmSync(root, { force: true, recursive: true });
   });
 
@@ -2287,7 +2289,12 @@ describe("bb-app launcher", () => {
     );
     const packageRoot = mkdtempSync(join(tmpdir(), "bb-app-prune-"));
     try {
-      const chunkDir = join(packageRoot, "host-daemon", "dist", "room-cli-chunks");
+      const chunkDir = join(
+        packageRoot,
+        "host-daemon",
+        "dist",
+        "room-cli-chunks",
+      );
       mkdirSync(chunkDir, { recursive: true });
       writeFileSync(
         join(packageRoot, "host-daemon", "dist", "room-cli"),
@@ -2300,7 +2307,10 @@ describe("bb-app launcher", () => {
         JSON.stringify({
           name: "bb-app-prune-fixture",
           version: "0.0.1",
-          files: ["host-daemon/dist/room-cli", "host-daemon/dist/room-cli-chunks"],
+          files: [
+            "host-daemon/dist/room-cli",
+            "host-daemon/dist/room-cli-chunks",
+          ],
         }),
       );
 

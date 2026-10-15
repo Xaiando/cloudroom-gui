@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { resolve } from "node:path";
+import { extname, resolve } from "node:path";
 
 export const ROOM_CLI_REEXEC_ENV = "ROOM_CLI_REEXEC";
 
@@ -58,10 +58,17 @@ export function maybeReexecViaRoomCli(
     return;
   }
 
-  const result = spawnSync(target, argv, {
-    env: childEnv,
-    stdio: "inherit",
-  });
+  const useNode =
+    process.platform === "win32" &&
+    ["", ".js", ".mjs", ".cjs"].includes(extname(target));
+  const result = spawnSync(
+    useNode ? process.execPath : target,
+    useNode ? [target, ...argv] : argv,
+    {
+      env: childEnv,
+      stdio: "inherit",
+    },
+  );
   if (result.error) {
     process.stderr.write(
       `room: failed to re-exec ROOM_CLI=${target}: ${result.error.message}\n`,

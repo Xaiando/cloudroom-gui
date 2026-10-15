@@ -17,7 +17,11 @@ it("preserves inferred types, ambient declarations, and distinct workspace compi
     const contract = path.join(root, "contract");
     await mkdir(path.join(sdk, "node_modules/@cloudroom"), { recursive: true });
     await mkdir(contract);
-    await symlink(contract, path.join(sdk, "node_modules/@cloudroom/contract"), "dir");
+    await symlink(
+      contract,
+      path.join(sdk, "node_modules/@cloudroom/contract"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
     await writeFile(
       path.join(contract, "package.json"),
       JSON.stringify({ name: "@cloudroom/contract", types: "index.ts" }),

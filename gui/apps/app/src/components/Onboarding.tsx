@@ -87,7 +87,7 @@ export function Onboarding() {
   const projects = useSidebarNavigation().data?.projects;
   const account = useCloudroomAccount();
   const locked = account.isSuccess && !account.data.account;
-  const visible = locked || open || (!dismissed && projects !== undefined && projects.length === 0);
+  const visible = open || (!dismissed && (locked || (projects !== undefined && projects.length === 0)));
   if (!visible) return null;
   return <Setup locked={locked} close={() => { setDismissed(true); setOpen(false); }} />;
 }
@@ -213,7 +213,7 @@ function Setup({ locked, close }: { locked: boolean; close: () => void }) {
           <div key={step} className={cn("my-auto w-full duration-300 animate-in fade-in-0 slide-in-from-bottom-1", step === 3 ? "max-w-[860px]" : "max-w-[600px]")}>
             {step === 1 && stamped ? <TickStamp key={`${claude}-${codex}`} /> : <BbLogo className="mb-6 size-[72px] -rotate-[5deg]" />}
             <p className="font-serif text-base text-(--ob-muted) italic">Step {step + 1} of 4</p>
-            {step === 0 && <AccountStep email={account.data?.account?.email ?? null} signingIn={account.data?.signingIn === true} next={next} />}
+            {step === 0 && <AccountStep email={account.data?.account?.email ?? null} signingIn={account.data?.signingIn === true} next={next} continueLocally={() => { track("account", "skipped"); leave(); }} />}
             {step === 1 && <AgentStep progress={progress} next={next} stamped={stamped} left={countdown?.left ?? null} choices={choices} setChoices={setChoices} />}
             {step === 2 && <GithubStep progress={progress} next={next} />}
             {step === 3 && <ProjectStep close={leave} />}
@@ -343,7 +343,7 @@ const TickStamp = () => (
   </span>
 );
 
-function AccountStep({ email, signingIn, next }: { email: string | null; signingIn: boolean; next: () => void }) {
+function AccountStep({ email, signingIn, next, continueLocally }: { email: string | null; signingIn: boolean; next: () => void; continueLocally: () => void }) {
   const signIn = useCloudroomSignIn();
   const busy = signingIn || signIn.isPending;
   const start = () => { track("account", "started"); signIn.mutate("signIn"); };
@@ -366,6 +366,8 @@ function AccountStep({ email, signingIn, next }: { email: string | null; signing
           <div className="mt-8 flex flex-col items-start gap-4">
             <Cta onClick={start}>Sign in with browser <Icon name="ArrowRight" aria-hidden /></Cta>
             <Note>Already signed in there? You come right back.</Note>
+            <Outline onClick={continueLocally}>Continue locally</Outline>
+            <Note>Use your installed agents without a Cloudroom account. Sign in later to connect cloud services.</Note>
           </div>
         </>
       )}

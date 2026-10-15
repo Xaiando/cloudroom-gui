@@ -25,13 +25,13 @@ describe("archive-codex-tmp-bb-sessions", () => {
     const parsedArgs = parseArchiveTmpBbSessionsArgs(
       [],
       { CODEX_BIN: "/custom/codex" },
-      "/Users/tester",
+      path.resolve("/Users/tester"),
     );
 
     expect(parsedArgs.help).toBe(false);
     expect(parsedArgs.options).toEqual({
       codexBin: "/custom/codex",
-      codexHome: path.join("/Users/tester", ".codex"),
+      codexHome: path.join(path.resolve("/Users/tester"), ".codex"),
       concurrency: 25,
       dryRun: false,
       patterns: [
@@ -48,11 +48,11 @@ describe("archive-codex-tmp-bb-sessions", () => {
     const parsedArgs = parseArchiveTmpBbSessionsArgs(
       [],
       { CODEX_HOME: "~/custom-codex" },
-      "/Users/tester",
+      path.resolve("/Users/tester"),
     );
 
     expect(parsedArgs.options.codexHome).toBe(
-      path.join("/Users/tester", "custom-codex"),
+      path.join(path.resolve("/Users/tester"), "custom-codex"),
     );
   });
 
@@ -70,12 +70,12 @@ describe("archive-codex-tmp-bb-sessions", () => {
         "--concurrency=7",
       ],
       {},
-      "/Users/tester",
+      path.resolve("/Users/tester"),
     );
 
     expect(parsedArgs.options).toEqual({
-      codexBin: path.join("/Users/tester", "bin", "codex"),
-      codexHome: path.join("/Users/tester", "custom-codex"),
+      codexBin: path.join(path.resolve("/Users/tester"), "bin", "codex"),
+      codexHome: path.join(path.resolve("/Users/tester"), "custom-codex"),
       concurrency: 7,
       dryRun: true,
       patterns: ["/tmp/custom-bb-*"],
@@ -87,7 +87,7 @@ describe("archive-codex-tmp-bb-sessions", () => {
     const parsedArgs = parseArchiveTmpBbSessionsArgs(
       ["--pattern", "*/bb-foo-*", "--pattern=*/bb-bar-*"],
       {},
-      "/Users/tester",
+      path.resolve("/Users/tester"),
     );
 
     expect(parsedArgs.options.patterns).toEqual(["*/bb-foo-*", "*/bb-bar-*"]);

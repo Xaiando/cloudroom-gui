@@ -31,11 +31,11 @@ describe("bbDesktopInfoSchema", () => {
     ).toBe(false);
   });
 
-  it("accepts linux", () => {
+  it.each(["linux", "windows"])("accepts %s", (platform) => {
     expect(
       bbDesktopInfoSchema.safeParse({
         ...baseInfo,
-        platform: "linux",
+        platform,
       }).success,
     ).toBe(true);
   });

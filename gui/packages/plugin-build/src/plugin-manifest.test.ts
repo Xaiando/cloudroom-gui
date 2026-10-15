@@ -1,8 +1,36 @@
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { validatePluginBuildManifest } from "./plugin-manifest.js";
+import {
+  resolveManifestPath,
+  validatePluginBuildManifest,
+} from "./plugin-manifest.js";
+
+describe("plugin manifest paths", () => {
+  const root = join(tmpdir(), "cloudroom plugin");
+
+  it("accepts files inside a root with native separators and a trailing separator", () => {
+    expect(resolveManifestPath(root + sep, "./server.ts", "bb.server")).toBe(
+      join(root, "server.ts"),
+    );
+  });
+
+  it.each(["../outside.ts", "../cloudroom plugin-other/server.ts"])(
+    "rejects %s",
+    (entry) => {
+      expect(() => resolveManifestPath(root, entry, "bb.server")).toThrow(
+        "escapes the plugin directory",
+      );
+    },
+  );
+
+  it("rejects absolute entries", () => {
+    expect(() =>
+      resolveManifestPath(root, join(tmpdir(), "outside.ts"), "bb.server"),
+    ).toThrow("must be relative");
+  });
+});
 
 const SVG =
   '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h4v4z"/></svg>';
@@ -102,11 +130,15 @@ describe("validatePluginBuildManifest: bb.branding assets", () => {
     tempDirs.push(outside);
     await writeFile(join(outside, "mark.svg"), SVG);
     const escaping = await fixture({ mark: "./icons/mark.svg" });
-    await mkdir(join(escaping.dir, "icons"), { recursive: true });
-    await symlink(
-      join(outside, "mark.svg"),
-      join(escaping.dir, "icons", "mark.svg"),
-    );
+    if (process.platform === "win32") {
+      await symlink(outside, join(escaping.dir, "icons"), "junction");
+    } else {
+      await mkdir(join(escaping.dir, "icons"), { recursive: true });
+      await symlink(
+        join(outside, "mark.svg"),
+        join(escaping.dir, "icons", "mark.svg"),
+      );
+    }
     await expect(
       validatePluginBuildManifest(
         escaping.manifest,

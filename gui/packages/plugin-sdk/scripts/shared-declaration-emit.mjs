@@ -74,7 +74,7 @@ export function sharedDeclarationEmit(entries, workspaceDir, resolveSource) {
   );
   const roots = discovery
     .getSourceFiles()
-    .map((source) => source.fileName)
+    .map((source) => path.resolve(source.fileName))
     .filter(
       (id) =>
         id.startsWith(workspaceDir + path.sep) &&

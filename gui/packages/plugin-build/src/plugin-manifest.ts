@@ -1,5 +1,5 @@
 import { readFile, realpath, stat } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import {
   isPluginOwnedIconPath,
   pluginPackageJsonSchema,
@@ -13,6 +13,11 @@ import {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isInsideDirectory(rootDir: string, target: string): boolean {
+  const path = relative(rootDir, target);
+  return path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
 export async function readPluginPackageJsonFile(
@@ -40,7 +45,7 @@ export function resolveManifestPath(
     throw new Error(`manifest ${label} must be relative, got "${entry}"`);
   }
   const resolved = resolve(rootDir, entry);
-  if (resolved !== rootDir && !resolved.startsWith(rootDir + "/")) {
+  if (!isInsideDirectory(rootDir, resolved)) {
     throw new Error(
       `manifest ${label} escapes the plugin directory: "${entry}"`,
     );
@@ -80,7 +85,7 @@ export async function resolveManifestAssetFile(
     realpath(rootDir),
     realpath(assetPath),
   ]);
-  if (realAsset !== realRoot && !realAsset.startsWith(realRoot + "/")) {
+  if (!isInsideDirectory(realRoot, realAsset)) {
     throw new Error(
       `manifest ${label} escapes the plugin directory through a symlink`,
     );

@@ -378,4 +378,5 @@ function main() {
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(main());
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1])
+  process.exit(main());

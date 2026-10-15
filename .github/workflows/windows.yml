@@ -1,0 +1,47 @@
+name: Windows desktop preview
+
+on:
+  push:
+    branches: [windows-native]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: gui
+    env:
+      TURBO_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Install pinned dependencies
+        run: npx --yes pnpm@9.15.0 install --frozen-lockfile
+      - name: Build the original desktop and runtime
+        run: npx --yes pnpm@9.15.0 exec turbo run build typecheck --filter=@cloudroom/app --filter=@cloudroom/server --filter=@cloudroom/desktop --filter=bb-app --concurrency=2
+      - name: Configuration and verified process ownership
+        run: npx --yes pnpm@9.15.0 exec turbo run test --filter=@cloudroom/config --concurrency=2
+      - name: Desktop identity, plugin containment, and declaration builds
+        run: npx --yes pnpm@9.15.0 exec turbo run test --filter=@cloudroom/desktop-contract --filter=@cloudroom/desktop --filter=@cloudroom/plugin-build --filter=@get-bb/plugin-sdk --concurrency=2 -- desktop-platform.test.ts desktop-update-provider.test.ts info.test.ts version-feed.test.ts plugin-manifest.test.ts shared-declaration-emit.test.mjs
+      - name: Private Windows file permissions
+        run: npx --yes pnpm@9.15.0 exec turbo run test --filter=@cloudroom/secret-storage -- private-path.test.ts
+      - name: Local onboarding
+        run: npx --yes pnpm@9.15.0 exec turbo run test --filter=@cloudroom/app -- Onboarding.local.test.tsx
+      - name: Bundled CLI argument forwarding
+        run: npx --yes pnpm@9.15.0 exec turbo run test --filter=bb-app -- index.test.ts -t 'runs the bundled room-cli'
+      - name: Native launcher, original UI, and scheduled script execution
+        run: python apps/desktop/scripts/smoke-windows.py

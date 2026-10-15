@@ -1,5 +1,7 @@
 # Build Cloudroom from source
 
+For the native Windows preview, see [Windows build and validation](docs/windows.md). Double-click `Start-Cloudroom-Windows.cmd` at the repository root after building.
+
 You need macOS on Apple Silicon, Git, Node.js 22.19+, pnpm 9.15.0, Python 3.11+, and Xcode Command Line Tools. Building needs no Cloudroom account.
 
 Run these from this folder:

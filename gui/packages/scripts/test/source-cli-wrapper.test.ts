@@ -35,10 +35,16 @@ function buildCleanEnv(): NodeJS.ProcessEnv {
 
 function runSourceRoom(args: string[]): Promise<SourceCliResult> {
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn("pnpm", ["--silent", "room-cli", ...args], {
-      cwd: repoRoot,
-      env: buildCleanEnv(),
-    });
+    const pnpm = process.env.npm_execpath;
+    if (!pnpm) throw new Error("Run this test through pnpm.");
+    const child = spawn(
+      process.execPath,
+      [pnpm, "--silent", "room-cli", ...args],
+      {
+        cwd: repoRoot,
+        env: buildCleanEnv(),
+      },
+    );
     spawnedChildren.push(child);
 
     const stdoutChunks: string[] = [];

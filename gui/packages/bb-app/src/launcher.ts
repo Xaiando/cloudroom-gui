@@ -57,7 +57,10 @@ import {
 } from "@cloudroom/config/inference-model";
 import { validateLogLevel } from "@cloudroom/config/log-level";
 import { validateOptionalUrl } from "@cloudroom/config/public-url";
-import { parseServerBindHost, type ServerBindHost } from "@cloudroom/config/server";
+import {
+  parseServerBindHost,
+  type ServerBindHost,
+} from "@cloudroom/config/server";
 import { toOptionalString } from "@cloudroom/config/strings";
 import {
   BB_PROD_HOST_DAEMON_PORT,
@@ -2455,12 +2458,18 @@ export async function runBundledCliCommand(
   args: RunBundledCliCommandArgs,
 ): Promise<number> {
   const bbCliOverride = toOptionalString(args.env.ROOM_CLI);
-  const cliPath = bbCliOverride ?? join(args.context.daemonBundleDir, "room-cli");
-  const childProcess = spawn(cliPath, args.args, {
-    cwd: process.cwd(),
-    env: createCliEnv({ context: args.context, env: args.env }),
-    stdio: "inherit",
-  });
+  const cliPath =
+    bbCliOverride ?? join(args.context.daemonBundleDir, "room-cli");
+  const useNode = process.platform === "win32" && bbCliOverride === undefined;
+  const childProcess = spawn(
+    useNode ? process.execPath : cliPath,
+    useNode ? [cliPath, ...args.args] : args.args,
+    {
+      cwd: process.cwd(),
+      env: createCliEnv({ context: args.context, env: args.env }),
+      stdio: "inherit",
+    },
+  );
 
   return toExitCode(await waitForProcessExit(childProcess));
 }
@@ -2474,7 +2483,8 @@ export async function runBbCli(
   if (env.ROOM_DATA_DIR !== undefined) env.BB_DATA_DIR = env.ROOM_DATA_DIR;
   if (env.ROOM_HOST_DAEMON_PORT !== undefined)
     env.BB_HOST_DAEMON_PORT = env.ROOM_HOST_DAEMON_PORT;
-  if (env.ROOM_SERVER_URL !== undefined) env.BB_SERVER_URL = env.ROOM_SERVER_URL;
+  if (env.ROOM_SERVER_URL !== undefined)
+    env.BB_SERVER_URL = env.ROOM_SERVER_URL;
   const runtime = await resolveBbAppRuntimeState({
     entrypointUrl: import.meta.url,
     env,
